@@ -1,0 +1,8 @@
+# pyc files
+*.pyc
+
+# vscode configuration dir
+.vscode/
+
+# pycache dir
+__pycache__/

@@ -1,0 +1,20 @@
+{
+    "board_width": 9,
+    "board_height": 9,
+    "batch_size": 128,
+    "base_learning_rate": 2e-3,
+    "game_per_epoch": 1,
+    "learning_rate_magnitude": 1.0,
+    "model_path": "./checkpoint/test_model/test_model.ckpt",
+    "MCTS_exploration_weight": 5,
+    "MCTS_compute_budget": 100,
+    "num_validation_game": 5,
+    "validation_every": 2,
+    "validation_player_compute_budget": 50,
+    "number_to_win": 5,
+    "num_epoches": 10,
+    "iter_per_epoch": 5,
+    "player_exploration_level": 1e-4,
+    "kl_div_target": 0.02,
+    "save_every": 5
+}
