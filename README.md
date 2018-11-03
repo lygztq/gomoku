@@ -1,4 +1,5 @@
-![](./images/Gomoku.PNG)
+![icon](./images/Gomoku.png)
+
 # GOMOKU #
 
 ## Introduction ##
@@ -7,7 +8,7 @@ This [Gomoku][gomoku_intro](also called Gobang or Five-in-a-row) program is an i
 
 * A Gomoku Game between two pure MCTS AI player.
 
-![test](./images/pure_mcts_game.gif)
+![game_example](./images/pure_mcts_game.gif)
 
 ## Usage ##
 
