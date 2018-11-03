@@ -109,7 +109,7 @@ class GameServer(object):
             current_player = players[self.board.current_player]
             move = current_player.getAction(self.board)
             while not self.board.play(move):
-                print("Invalid movement.")
+                print("Invalid movement.") #TODO: some bug here, infinite invalid movement.
             if not self.silent:
                 self.showGameInfo()
             is_end, winner = self.board.gameEnd()

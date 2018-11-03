@@ -6,3 +6,9 @@
 
 # pycache dir
 __pycache__/
+
+# obj files
+*.o
+
+# exe files
+*.exe
