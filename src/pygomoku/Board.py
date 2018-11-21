@@ -349,3 +349,11 @@ class Board(object):
             return False
         else:
             return True
+
+    @staticmethod
+    def randomPlayer():
+        return np.random.randint(0,2)
+    
+    @staticmethod
+    def opponent(player_color):
+        return 1 - player_color

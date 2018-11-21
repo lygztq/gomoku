@@ -63,6 +63,7 @@ class SimpleCNN(NeuralNetwork):
                 tf.float32, shape=[None, height*width])
 
             self.learning_rate = tf.placeholder(tf.float32)
+            self.is_training = tf.placeholder(tf.bool)
 
             # tensorflow like input with format [N,H,W,C]
             self.input_states = tf.transpose(self.raw_input_states, [0, 2, 3, 1])
@@ -73,15 +74,18 @@ class SimpleCNN(NeuralNetwork):
                                               filters=32, kernel_size=3,
                                               padding="same", activation=tf.nn.relu,
                                               name="conv1")
-                self.conv2 = tf.layers.conv2d(inputs=self.conv1, filters=64,
+                self.batchnorm1 = tf.layers.batch_normalization(self.conv1, training=self.is_training)
+                self.conv2 = tf.layers.conv2d(inputs=self.batchnorm1, filters=64,
                                               kernel_size=3, padding="same",
                                               activation=tf.nn.relu, name="conv2")
+                self.batchnorm2 = tf.layers.batch_normalization(self.conv2, training=self.is_training)
                 self.conv3 = tf.layers.conv2d(inputs=self.conv2, filters=128,
                                               kernel_size=3, padding="same",
                                               activation=tf.nn.relu, name="conv3")
+                self.batchnorm3 = tf.layers.batch_normalization(self.conv3, training=self.is_training)
             # Action net layers
             with tf.variable_scope("action_layers"):
-                self.action_conv = tf.layers.conv2d(inputs=self.conv3, filters=8,
+                self.action_conv = tf.layers.conv2d(inputs=self.batchnorm3, filters=8,
                                                     kernel_size=1, padding="same",
                                                     activation=tf.nn.relu, name="action_conv")
                 self.action_conv_flat = tf.reshape(
@@ -94,7 +98,7 @@ class SimpleCNN(NeuralNetwork):
 
             # Value net layers
             with tf.variable_scope("value_layers"):
-                self.value_conv = tf.layers.conv2d(inputs=self.conv3, filters=2,
+                self.value_conv = tf.layers.conv2d(inputs=self.batchnorm3, filters=2,
                                                    kernel_size=1, padding="same",
                                                    activation=tf.nn.relu, name="value_conv")
                 self.value_conv_flat = tf.reshape(
@@ -114,15 +118,21 @@ class SimpleCNN(NeuralNetwork):
             trainable_vars = tf.trainable_variables()
             self.l2_norm_weight = norm_weight
             l2_norm = norm_weight * tf.add_n(
-                [tf.nn.l2_loss(v) for v in trainable_vars if 'bias' not in v.name.lower()])
+                [tf.nn.l2_loss(v) for v in trainable_vars if ('bias' not in v.name.lower() and 
+                                                              'moving' not in v.name.lower())])
 
             self.loss = self.value_loss + self.policy_loss + l2_norm
+            self.entropy = tf.negative(tf.reduce_mean(
+                tf.reduce_sum(self.action_out * tf.log(self.action_out), -1)
+            ))
 
             # train op part
             self.optimizer = tf.train.AdamOptimizer(
                 learning_rate=self.learning_rate)
-
-            self.train_op = self.optimizer.minimize(self.loss)
+            
+            update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+            with tf.control_dependencies(update_ops):
+                self.train_op = self.optimizer.minimize(self.loss)
             self.global_step = tf.get_variable("global_step", initializer=0, trainable=False)
             self.step_add_op = self.global_step + 1
 
@@ -149,7 +159,7 @@ class SimpleCNN(NeuralNetwork):
     def getPolicyValue(self, state_batch):
         act_prob, value = self.session.run(
             [self.action_out, self.value_out],
-            feed_dict={self.raw_input_states: state_batch}
+            feed_dict={self.raw_input_states: state_batch, self.is_training: False}
         )
         return act_prob, value
 
@@ -178,13 +188,14 @@ class SimpleCNN(NeuralNetwork):
             lr: learning rate.
         """
         winner_batch = np.reshape(winner_batch, (-1, 1))
-        loss, _, _ = self.session.run(
-            [self.loss, self.train_op, self.step_add_op],
+        loss, _, _, entropy = self.session.run(
+            [self.loss, self.train_op, self.step_add_op, self.entropy],
             feed_dict={self.raw_input_states: state_batch,
                        self.mcts_probs_labels: mcts_probs_batch,
                        self.value_labels: winner_batch,
-                       self.learning_rate: lr})
-        return loss
+                       self.learning_rate: lr,
+                       self.is_training: True})
+        return loss, entropy
     
     def getGlobalStep(self):
         global_step = self.session.run(self.global_step)

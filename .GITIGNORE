@@ -12,3 +12,6 @@ __pycache__/
 
 # exe files
 *.exe
+
+# checkpoint dir
+checkpoint/
